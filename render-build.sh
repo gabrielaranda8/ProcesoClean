@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Actualizar paquetes e instalar Chromium y dependencias
+# Actualiza los paquetes e instala Chromium y sus dependencias
 apt-get update && apt-get install -y \
     chromium-browser \
     chromium-chromedriver \
@@ -8,7 +8,8 @@ apt-get update && apt-get install -y \
     libappindicator3-1 \
     libatk-bridge2.0-0 \
     libx11-xcb1 \
-    xdg-utils
+    xdg-utils && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Limpiar el sistema para reducir el tamaño
-apt-get clean && rm -rf /var/lib/apt/lists/*
+# Instala las dependencias de Python
+pip install -r requirements.txt
