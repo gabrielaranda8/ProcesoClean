@@ -25,20 +25,23 @@ def execute_process():
     if not os.path.exists(download_dir):
         os.makedirs(download_dir)
 
-    # Configuración para que Selenium no abra el navegador
+    # Configuración para Selenium en modo sin interfaz gráfica
     chrome_options = Options()
-    chrome_options.add_argument("--headless")  # Modo sin interfaz gráfica
+    chrome_options.add_argument("--headless")
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_experimental_option("prefs", {
-        "download.default_directory": download_dir,  # Directorio donde se guardará el archivo
-        "download.prompt_for_download": False,  # Evita el prompt de descarga
+        "download.default_directory": "/tmp",  # Directorio temporal en Render
+        "download.prompt_for_download": False,
         "directory_upgrade": True
     })
 
-    # Inicializa el driver usando Service
-    service = Service(ChromeDriverManager().install())
+    # Configuración específica para Render
+    chrome_options.binary_location = "/usr/bin/chromium-browser"  # Render utiliza esta ruta
+
+    # Inicializar el driver con Chromium
+    service = Service("/usr/bin/chromedriver")  # Render utiliza este controlador
     driver = webdriver.Chrome(service=service, options=chrome_options)
 
     # Abre la página inicial
