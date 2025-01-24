@@ -44,4 +44,5 @@ def index():
     return render_template("index.html", is_running=is_running, process_count=process_count, frequency=frequency if is_running else 0)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    print("ARRANCA FLASK ---------------------------------->")
+    app.run(debug=True, host='0.0.0.0', port=5000)

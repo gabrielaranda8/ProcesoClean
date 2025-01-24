@@ -21,28 +21,27 @@ pass_clean = os.environ.get('PASS')
 
 def execute_process():
     # Configuración para descargar automáticamente
-    download_dir = os.path.abspath(r"C:\Users\Cohen\Desktop\GABI-01-CosasVarias\GA-06-Proyectos\nachito_test")
+    download_dir = os.path.abspath("/tmp/downloads")
     if not os.path.exists(download_dir):
         os.makedirs(download_dir)
 
-    # Configuración para Selenium en modo sin interfaz gráfica
+    # Configuración para que Selenium no abra el navegador
     chrome_options = Options()
-    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--headless")  # Modo sin interfaz gráfica
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_experimental_option("prefs", {
-        "download.default_directory": "/tmp",  # Directorio temporal en Render
-        "download.prompt_for_download": False,
+        "download.default_directory": download_dir,  # Directorio donde se guardará el archivo
+        "download.prompt_for_download": False,  # Evita el prompt de descarga
         "directory_upgrade": True
     })
-
-    # Configuración específica para Render
-    chrome_options.binary_location = "/usr/bin/chromium-browser"  # Render utiliza esta ruta
-
-    # Inicializar el driver con Chromium
-    service = Service("/usr/bin/chromedriver")  # Render utiliza este controlador
-    driver = webdriver.Chrome(service=service, options=chrome_options)
+    print("---------------------------------->", chrome_options.to_capabilities())
+    # Conexión al Selenium Hub
+    driver = webdriver.Remote(
+        command_executor="http://selenium_hub:4444/wd/hub",  # URL del Selenium Hub en docker-compose
+        options=chrome_options
+    )
 
     # Abre la página inicial
     url = "https://www.cleas.com.ar/"
@@ -154,36 +153,42 @@ def execute_process():
       "universe_domain": "googleapis.com"
     }
 
-    downloaded_files = os.listdir(download_dir)
+    try:
+        
+    
+        downloaded_files = os.listdir(download_dir)
 
-    xls_files = [file for file in downloaded_files if file.endswith('.xls')]
-    excel_file = os.path.join(download_dir, xls_files[0])
+        xls_files = [file for file in downloaded_files if file.endswith('.xls')]
+        excel_file = os.path.join(download_dir, xls_files[0])
 
-    if excel_file:
-        print(f"Archivo encontrado: {excel_file}")
+        if excel_file:
+            print(f"Archivo encontrado: {excel_file}")
 
-        # Leer el archivo Excel con pandas
-        df = pd.read_excel(excel_file, engine='xlrd')
-        df = df.fillna("")  # Limpiar el DataFrame (reemplazar NaN con cadenas vacías)
+            # Leer el archivo Excel con pandas
+            df = pd.read_excel(excel_file, engine='xlrd')
+            df = df.fillna("")  # Limpiar el DataFrame (reemplazar NaN con cadenas vacías)
 
-        # Conexión a Google Sheets
-        scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(credentials_path, scope)
-        gc = gspread.authorize(creds)
+            # Conexión a Google Sheets
+            scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+            creds = ServiceAccountCredentials.from_json_keyfile_dict(credentials_path, scope)
+            gc = gspread.authorize(creds)
 
-        # Abrir la hoja de Google Sheets
-        spreadsheet = gc.open_by_key(sheet_path).sheet1
+            # Abrir la hoja de Google Sheets
+            spreadsheet = gc.open_by_key(sheet_path).sheet1
 
-        # Limpiar la hoja de Google Sheets
-        spreadsheet.clear()
-        print("Contenido de Google Sheets eliminado.")
+            # Limpiar la hoja de Google Sheets
+            spreadsheet.clear()
+            print("Contenido de Google Sheets eliminado.")
 
-        # Subir todos los datos del DataFrame a Google Sheets
-        if not df.empty:
-            spreadsheet.update([df.columns.values.tolist()] + df.values.tolist(), value_input_option="USER_ENTERED")
-            print(f"{len(df)} filas reemplazadas en Google Sheets con los datos del archivo Excel.")
-        else:
-            print("El archivo Excel está vacío. No se realizaron cambios en Google Sheets.")
+            # Subir todos los datos del DataFrame a Google Sheets
+            if not df.empty:
+                spreadsheet.update([df.columns.values.tolist()] + df.values.tolist(), value_input_option="USER_ENTERED")
+                print(f"{len(df)} filas reemplazadas en Google Sheets con los datos del archivo Excel.")
+            else:
+                print("El archivo Excel está vacío. No se realizaron cambios en Google Sheets.")
 
-        os.remove(excel_file)
+            os.remove(excel_file)
+
+    except Exception as e:
+        print(e)
 

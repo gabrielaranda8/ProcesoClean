@@ -1,0 +1,33 @@
+version: "3.8"
+
+services:
+  selenium_hub:
+    image: selenium/hub:4.12.1  # Versión estable conocida
+    container_name: selenium_hub
+    ports:
+      - "4444:4444"
+
+  chrome_node:
+    image: selenium/node-chrome:4.12.1  # Versión compatible con el hub
+    container_name: chrome_node
+    depends_on:
+      - selenium_hub
+    environment:
+      - SE_EVENT_BUS_HOST=selenium_hub
+      - SE_EVENT_BUS_PUBLISH_PORT=4442
+      - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
+    volumes:
+      - ./tmp/downloads:/downloads
+
+  app:
+    build:
+      context: .
+    container_name: app-1
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - selenium_hub
