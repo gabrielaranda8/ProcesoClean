@@ -39,7 +39,7 @@ def execute_process():
     print("---------------------------------->", chrome_options.to_capabilities())
     # Conexión al Selenium Hub
     driver = webdriver.Remote(
-        command_executor="http://selenium_hub:4444/wd/hub",  # URL del Selenium Hub en docker-compose
+        command_executor='http://selenium:4444/wd/hub',
         options=chrome_options
     )
 
