@@ -1,15 +1,6 @@
 version: "3.8"
 
 services:
-  selenium:
-    image: selenium/standalone-chrome:latest
-    container_name: selenium
-    ports:
-      - "4444:4444"
-    # Mapea la memoria compartida para un mejor rendimiento de Chrome
-    volumes:
-      - /dev/shm:/dev/shm
-
   app:
     build:
       context: .
@@ -20,7 +11,4 @@ services:
       - .:/app
     environment:
       - PYTHONUNBUFFERED=1
-    depends_on:
-      - selenium
-
 

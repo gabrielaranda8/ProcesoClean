@@ -49,8 +49,8 @@ def execute_process(credentials):
 
     try:
     # Rellena el formulario de inicio de sesión
-        driver.find_element(By.NAME, "txtUser").send_keys(user_clean)  # Usuario real
-        driver.find_element(By.NAME, "txtPass").send_keys(pass_clean)  # Contraseña real
+        driver.find_element(By.NAME, "txtUser").send_keys(credentials["username"])  # Usuario real
+        driver.find_element(By.NAME, "txtPass").send_keys(credentials["password"])  # Contraseña real
         driver.find_element(By.NAME, "lnkEnviar").click()  # Hace clic en el botón "Entrar"
 
         # Esperar a que cargue la respuesta

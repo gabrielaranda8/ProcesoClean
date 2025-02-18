@@ -8,18 +8,6 @@ RUN apt-get update && apt-get install -y \
     xvfb \
     && apt-get clean
 
-# Instala Google Chrome
-RUN curl -sS -L https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb -o chrome.deb && \
-    apt-get install -y ./chrome.deb && \
-    rm chrome.deb
-
-# Instala ChromeDriver
-RUN CHROME_DRIVER_VERSION=$(curl -sS https://chromedriver.storage.googleapis.com/LATEST_RELEASE) && \
-    curl -sS -L https://chromedriver.storage.googleapis.com/$CHROME_DRIVER_VERSION/chromedriver_linux64.zip -o chromedriver.zip && \
-    unzip chromedriver.zip -d /usr/local/bin/ && \
-    rm chromedriver.zip && \
-    chmod +x /usr/local/bin/chromedriver
-
 # Configura el directorio de trabajo
 WORKDIR /app
 
