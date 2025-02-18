@@ -19,7 +19,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 user_clean = os.environ.get('USER')
 pass_clean = os.environ.get('PASS')
 
-def execute_process():
+def execute_process(credentials):
     # Configuración para descargar automáticamente
     download_dir = os.path.abspath("/tmp/downloads")
     if not os.path.exists(download_dir):
@@ -27,7 +27,7 @@ def execute_process():
 
     # Configuración para que Selenium no abra el navegador
     chrome_options = Options()
-    chrome_options.add_argument("--headless")  # Modo sin interfaz gráfica
+    chrome_options.add_argument("--headless")  # Modo headless
     chrome_options.add_argument("--disable-gpu")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
@@ -36,7 +36,7 @@ def execute_process():
         "download.prompt_for_download": False,  # Evita el prompt de descarga
         "directory_upgrade": True
     })
-    print("---------------------------------->", chrome_options.to_capabilities())
+    # print("---------------------------------->", chrome_options.to_capabilities())
     # Conexión al Selenium Hub
     driver = webdriver.Remote(
         command_executor='https://standalone-chrome-flcy.onrender.com/wd/hub',
@@ -72,6 +72,40 @@ def execute_process():
             driver.get(url)
             print("Página cargada correctamente.")
 
+            # Limpiar filtros primero
+            try:
+                # Esperar a que el enlace de limpiar filtros sea clickeable y hacer clic en él
+                limpiar_filtros_link = WebDriverWait(driver, 10).until(
+                    EC.element_to_be_clickable((By.ID, "lnkLimpiarFiltros"))
+                )
+                limpiar_filtros_link.click()
+                
+                # Esperar a que cargue la respuesta
+                # driver.implicitly_wait(10)
+                print("Enlace 'Limpiar Filtros' clickeado.")
+
+                # Esperar a que el enlace 'Avanzado' sea clickeable y hacer clic en él
+                filtro_link = WebDriverWait(driver, 10).until(
+                    EC.element_to_be_clickable((By.ID, "lnkFiltros"))
+                )
+                filtro_link.click()
+                print("Enlace 'Avanzado' clickeado.")
+
+                # Ahora esperar a que el filtro de zona esté clickeable
+                zona_select = WebDriverWait(driver, 10).until(
+                    EC.element_to_be_clickable((By.NAME, "lstZona"))
+                )
+                
+                # Crear una instancia de Select para manejar el dropdown
+                select_zona = Select(zona_select)
+                
+                # Seleccionar la opción "No Asignada"
+                select_zona.select_by_visible_text("No Asignada")
+                print("Filtro aplicado: Zona - No Asignada.")
+                
+            except Exception as e:
+                print(f"Error: {e}")
+
             # ---------------------------
             # Cambiar la responsabilidad a "Todos"
             responsabilidad_select = driver.find_element(By.NAME, "lstresponsabilidad")
@@ -94,6 +128,22 @@ def execute_process():
             # Seleccionar la opción por texto visible
             select_estado.select_by_visible_text("Vigente - Sin definir responsabilidad")
             print("Filtro aplicado: Vigente - Sin definir responsabilidad.")
+            # ---------------------------
+
+            # ---------------------------
+
+            # Aplicar el filtro de zona y seleccionar "No Asignada"
+            try:
+                zona_select = driver.find_element(By.NAME, "lstZona")
+                
+                # Crear una instancia de Select para manejar el dropdown
+                select_zona = Select(zona_select)
+                
+                # Seleccionar la opción "No Asignada" por texto visible
+                select_zona.select_by_visible_text("No Asignada")
+                print("Filtro aplicado: Zona - No Asignada.")
+            except Exception as e:
+                print(f"Error al aplicar el filtro de zona: {e}")
             # ---------------------------
 
             # ---------------------------
@@ -121,7 +171,8 @@ def execute_process():
             print("Popup aceptado.")
 
             # Esperar un tiempo para que la descarga ocurra
-            time.sleep(5)  # Deja más tiempo si es necesario
+            print("Esperando 15 segundos")
+            driver.implicitly_wait(15)  # Deja más tiempo si es necesario
             downloaded_files = os.listdir(download_dir)
             # Verificar si el archivo fue descargado
             xls_files = [file for file in downloaded_files if file.endswith('.xls')]
@@ -137,7 +188,6 @@ def execute_process():
             # Cerrar el driver
             driver.quit()
 
-    sheet_path = os.environ.get('SHEET_PATH')
             
     credentials_path = {
       "type": "service_account",
@@ -153,42 +203,71 @@ def execute_process():
       "universe_domain": "googleapis.com"
     }
 
+    downloaded_files = os.listdir(download_dir)
     try:
-        
-    
-        downloaded_files = os.listdir(download_dir)
-
         xls_files = [file for file in downloaded_files if file.endswith('.xls')]
         excel_file = os.path.join(download_dir, xls_files[0])
-
-        if excel_file:
-            print(f"Archivo encontrado: {excel_file}")
-
-            # Leer el archivo Excel con pandas
-            df = pd.read_excel(excel_file, engine='xlrd')
-            df = df.fillna("")  # Limpiar el DataFrame (reemplazar NaN con cadenas vacías)
-
-            # Conexión a Google Sheets
-            scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-            creds = ServiceAccountCredentials.from_json_keyfile_dict(credentials_path, scope)
-            gc = gspread.authorize(creds)
-
-            # Abrir la hoja de Google Sheets
-            spreadsheet = gc.open_by_key(sheet_path).sheet1
-
-            # Limpiar la hoja de Google Sheets
-            spreadsheet.clear()
-            print("Contenido de Google Sheets eliminado.")
-
-            # Subir todos los datos del DataFrame a Google Sheets
-            if not df.empty:
-                spreadsheet.update([df.columns.values.tolist()] + df.values.tolist(), value_input_option="USER_ENTERED")
-                print(f"{len(df)} filas reemplazadas en Google Sheets con los datos del archivo Excel.")
-            else:
-                print("El archivo Excel está vacío. No se realizaron cambios en Google Sheets.")
-
-            os.remove(excel_file)
-
     except Exception as e:
-        print(e)
+        print(f"No se encontro ningun archivo: {e}")
+        xls_files = None
+
+    if excel_file:
+        print(f"Archivo encontrado: {excel_file}")
+
+        # Leer el archivo Excel con pandas
+        df_excel = pd.read_excel(excel_file, engine='xlrd')
+        df_excel = df_excel.fillna("")  # Limpiar el DataFrame (reemplazar NaN con cadenas vacías)
+        # print("LLEGA")
+        # Verificar que la columna `Id_Oper` existe en el Excel
+        if 'Id_Oper' not in df_excel.columns:
+            raise ValueError("La columna 'Id_Oper' no existe en el archivo Excel.")
+
+        # Conexión a Google Sheets
+        scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(credentials_path, scope)
+        gc = gspread.authorize(creds)
+
+        # Abrir la hoja de Google Sheets
+        spreadsheet = gc.open_by_key(sheet_path).sheet1
+
+        # Leer datos de Google Sheets
+        sheet_data = spreadsheet.get_all_values()
+        if not sheet_data:
+            print("La hoja de Google Sheets está vacía.")
+            sheet_data = [[]]
+
+        # Obtener IDs existentes en Google Sheets y la primera columna
+        headers = sheet_data[0]  # Primera fila (encabezados)
+        sheet_df = pd.DataFrame(sheet_data[1:], columns=headers)  # Ignorar la primera fila
+
+        # Preservar la primera columna
+        first_column = sheet_df.iloc[:, 0].tolist()
+
+        # Obtener IDs existentes
+        existing_ids = sheet_df['Id_Oper'].tolist() if 'Id_Oper' in sheet_df.columns else []
+        print(f"IDs existentes en Google Sheets: {existing_ids}")
+
+        # Filtrar solo los nuevos IDs
+        new_data = df_excel[~df_excel['Id_Oper'].isin(existing_ids)]
+        print(f"Nuevos datos a agregar:\n{new_data}")
+
+        # Subir solo los nuevos datos a Google Sheets (preservando la primera columna)
+        if not new_data.empty:
+            # Preparar la data para añadir (sin tocar la primera columna)
+            updated_data = pd.concat([sheet_df, new_data], ignore_index=True)
+            updated_data.iloc[:, 0] = first_column + [""] * (len(updated_data) - len(first_column))  # Expandir si es necesario
+
+            # Subir a Google Sheets
+            spreadsheet.update(
+                [updated_data.columns.values.tolist()] + updated_data.fillna("").values.tolist(),
+                value_input_option="USER_ENTERED"
+            )
+            print(f"Datos nuevos añadidos a Google Sheets.")
+        else:
+            print("No hay nuevos datos para agregar.")
+
+        # Eliminar el archivo procesado
+        os.remove(excel_file)
+    else:
+        print("No se encontró un archivo Excel en el directorio de descargas.")
 
