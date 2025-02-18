@@ -7,6 +7,13 @@ services:
       - "4444:4444"
     volumes:
       - /dev/shm:/dev/shm
+    networks:
+      - mynet
+    healthcheck:
+      test: ["CMD", "curl", "-s", "http://localhost:4444/wd/hub/status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   app:
     build:
@@ -18,6 +25,12 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
     depends_on:
-      - selenium
+      selenium:
+        condition: service_healthy
+    networks:
+      - mynet
+
+networks:
+  mynet:
 
 
