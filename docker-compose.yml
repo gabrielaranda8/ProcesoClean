@@ -3,21 +3,17 @@ version: "3.8"
 services:
   selenium:
     image: selenium/standalone-chrome:latest
+    container_name: selenium
     ports:
       - "4444:4444"
+    # Mapea la memoria compartida para un mejor rendimiento de Chrome
     volumes:
       - /dev/shm:/dev/shm
-    networks:
-      - mynet
-    healthcheck:
-      test: ["CMD", "curl", "-s", "http://localhost:4444/wd/hub/status"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   app:
     build:
       context: .
+    container_name: app-1
     ports:
       - "5000:5000"
     volumes:
@@ -25,12 +21,6 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
     depends_on:
-      selenium:
-        condition: service_healthy
-    networks:
-      - mynet
-
-networks:
-  mynet:
+      - selenium
 
 
