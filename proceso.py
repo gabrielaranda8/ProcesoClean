@@ -39,7 +39,7 @@ def execute_process():
     print("---------------------------------->", chrome_options.to_capabilities())
     # Conexión al Selenium Hub
     driver = webdriver.Remote(
-        command_executor='http://selenium:4444/wd/hub',
+        command_executor='https://standalone-chrome-flcy.onrender.com/wd/hub',
         options=chrome_options
     )
 
