@@ -7,9 +7,6 @@ from oauth2client.service_account import ServiceAccountCredentials
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
 
-user_clean = os.environ.get('USER')
-pass_clean = os.environ.get('PASS')
-
 ### GSHEETS
 credentials_path = {
   "type": "service_account",
@@ -219,3 +216,30 @@ def execute_process(credentials):
         except Exception as e:
             print(f"Error al interactuar con Google Sheets: {e}")
 
+
+
+# Función para validar credenciales en CLEAS
+def validate_credentials(credentials):
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True, args=['--no-sandbox', '--disable-dev-shm-usage'])
+        page = browser.new_page()
+
+        url = "https://www.cleas.com.ar/"
+        try:
+            page.goto(url, wait_until='domcontentloaded', timeout=5000)
+            page.wait_for_selector('input[name="txtUser"]', timeout=5000)
+            page.fill('input[name="txtUser"]', credentials["username"])
+            page.fill('input[name="txtPass"]', credentials["password"])
+            page.click('input[name="lnkEnviar"]')
+
+            # Esperar a que aparezca el elemento imgCleas (indicador de login exitoso)
+            page.wait_for_selector('input#imgCleas', timeout=5000)
+            browser.close()
+            return True  # Login exitoso si imgCleas aparece
+        except PlaywrightTimeoutError:
+            browser.close()
+            return False  # Timeout indica que imgCleas no apareció, credenciales probablemente incorrectas
+        except Exception as e:
+            print(f"Error inesperado al validar credenciales: {e}")
+            browser.close()
+            return False

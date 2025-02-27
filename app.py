@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 import threading
 import time
-from proceso import execute_process
+from proceso import execute_process, validate_credentials
 import os
 
 app = Flask(__name__)
@@ -62,9 +62,10 @@ def login():
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
-
-        # Validar credenciales (cambia esto por tu lógica de validación)
-        if username == "40381041" and password == "Magali64*na*29*":
+        credentials = {"username": username, "password": password}
+        
+        # Validar credenciales contra CLEAS
+        if validate_credentials(credentials):
             session["user"] = username
             session["pass"] = password
             return redirect(url_for("index"))
