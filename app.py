@@ -64,7 +64,7 @@ def login():
         password = request.form["password"]
 
         # Validar credenciales (cambia esto por tu lógica de validación)
-        if username == "40381041" and password == "Magali64*na*29":
+        if username == "40381041" and password == "Magali64*na*29*":
             session["user"] = username
             session["pass"] = password
             return redirect(url_for("index"))

@@ -6,5 +6,4 @@ xlsxwriter
 pandas
 Werkzeug==2.3.7
 gunicorn==21.2.0
-selenium
-webdriver-manager
+playwright
