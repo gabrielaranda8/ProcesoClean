@@ -27,9 +27,22 @@ credentials_path = {
 
 sheet_path = os.environ.get('SHEET_PATH')
 
+def retry_action(action, max_attempts=3, timeout=10000, wait_between_attempts=2000):
+    """Función para reintentar una acción de Playwright con espera entre intentos."""
+    for attempt in range(max_attempts):
+        try:
+            return action()  # Ejecuta la acción y retorna si tiene éxito
+        except PlaywrightTimeoutError as e:
+            print(f"Intento {attempt + 1}/{max_attempts} falló: {e}")
+            if attempt < max_attempts - 1:
+                page.wait_for_timeout(wait_between_attempts)  # Espera antes de reintentar
+            else:
+                raise  # Relanza la excepción si se agotan los intentos
 
 def execute_process(credentials):
     print("COMIENZO execute_process")
+
+    ids = []
 
     with sync_playwright() as p:
         # Lanzar el navegador en modo headless
@@ -70,11 +83,11 @@ def execute_process(credentials):
         if response_post_html:
             print("Podemos avanzar, ya que las credenciales están correctas")
 
-            # Navegar a la página principal con espera dinámica
+            # Navegar a la página principal
             try:
                 url = "https://www.cleas.com.ar/wfrmMain2.aspx"
-                page.goto(url, wait_until='domcontentloaded', timeout=20000)
-                page.wait_for_load_state('networkidle', timeout=20000)  # Asegura que la página esté completamente cargada
+                page.goto(url, wait_until='domcontentloaded', timeout=15000)
+                page.wait_for_load_state('networkidle', timeout=15000)
                 print("Página principal cargada correctamente.")
             except PlaywrightTimeoutError:
                 print("Tiempo de espera agotado al cargar la página principal.")
@@ -82,57 +95,54 @@ def execute_process(credentials):
                 return
 
             try:
-                # Limpiar filtros con espera explícita
-                page.wait_for_selector('#lnkLimpiarFiltros', state='visible', timeout=20000)
-                page.click('#lnkLimpiarFiltros')
+                # Limpiar filtros
+                retry_action(lambda: page.wait_for_selector('#lnkLimpiarFiltros', state='visible', timeout=10000))
+                retry_action(lambda: page.click('#lnkLimpiarFiltros'))
                 print("Enlace 'Limpiar Filtros' clickeado.")
-                page.wait_for_load_state('domcontentloaded', timeout=20000)  # Espera respuesta de la acción
+                page.wait_for_load_state('domcontentloaded', timeout=5000)
 
-                # Hacer clic en el enlace 'Avanzado'
-                page.wait_for_selector('#lnkFiltros', state='visible', timeout=20000)
-                page.click('#lnkFiltros')
+                # Hacer clic en 'Avanzado'
+                retry_action(lambda: page.wait_for_selector('#lnkFiltros', state='visible', timeout=10000))
+                retry_action(lambda: page.click('#lnkFiltros'))
                 print("Enlace 'Avanzado' clickeado.")
-                page.wait_for_load_state('domcontentloaded', timeout=20000)
+                page.wait_for_load_state('domcontentloaded', timeout=5000)
 
                 # Seleccionar "No Asignada" en el filtro de zona
-                page.wait_for_selector('select[name="lstZona"]', state='visible', timeout=20000)
-                page.select_option('select[name="lstZona"]', label="No Asignada")
+                retry_action(lambda: page.wait_for_selector('select[name="lstZona"]', state='visible', timeout=10000))
+                retry_action(lambda: page.select_option('select[name="lstZona"]', label="No Asignada"))
                 print("Filtro aplicado: Zona - No Asignada.")
-                page.wait_for_load_state('domcontentloaded', timeout=20000)
+                page.wait_for_load_state('domcontentloaded', timeout=5000)
 
                 # Cambiar la responsabilidad a "Todos"
-                page.wait_for_selector('select[name="lstresponsabilidad"]', state='visible', timeout=20000)
-                page.select_option('select[name="lstresponsabilidad"]', label="Todos")
+                retry_action(lambda: page.wait_for_selector('select[name="lstresponsabilidad"]', state='visible', timeout=10000))
+                retry_action(lambda: page.select_option('select[name="lstresponsabilidad"]', label="Todos"))
                 print("Filtro aplicado: Responsabilidad - Todos.")
-                page.wait_for_load_state('domcontentloaded', timeout=20000)
+                page.wait_for_load_state('domcontentloaded', timeout=5000)
 
-                # Cambiar el estado a "Vigente - Sin definir responsabilidad"
-                page.wait_for_selector('select[name="lstEstado"]', state='visible', timeout=20000)
-                page.select_option('select[name="lstEstado"]', label="Vigente - Sin definir responsabilidad")
+                # Cambiar el estado
+                retry_action(lambda: page.wait_for_selector('select[name="lstEstado"]', state='visible', timeout=10000))
+                retry_action(lambda: page.select_option('select[name="lstEstado"]', label="Vigente - Sin definir responsabilidad"))
                 print("Filtro aplicado: Vigente - Sin definir responsabilidad.")
-                page.wait_for_load_state('domcontentloaded', timeout=20000)
+                page.wait_for_load_state('domcontentloaded', timeout=5000)
 
-                # Volver a seleccionar "No Asignada" en el filtro de zona
-                page.wait_for_selector('select[name="lstZona"]', state='visible', timeout=20000)
-                page.select_option('select[name="lstZona"]', label="No Asignada")
+                # Volver a seleccionar "No Asignada"
+                retry_action(lambda: page.wait_for_selector('select[name="lstZona"]', state='visible', timeout=10000))
+                retry_action(lambda: page.select_option('select[name="lstZona"]', label="No Asignada"))
                 print("Filtro reaplicado: Zona - No Asignada.")
-                page.wait_for_load_state('domcontentloaded', timeout=20000)
+                page.wait_for_load_state('domcontentloaded', timeout=5000)
 
-                # Marcar la casilla "Sólo eventos nuevos (otra compañía)"
-                page.wait_for_selector('#chkMensajesNuevos', state='visible', timeout=20000)
+                # Marcar la casilla
+                retry_action(lambda: page.wait_for_selector('#chkMensajesNuevos', state='visible', timeout=10000))
                 if not page.is_checked('#chkMensajesNuevos'):
-                    page.check('#chkMensajesNuevos')
+                    retry_action(lambda: page.check('#chkMensajesNuevos'))
                     print("Casilla 'Sólo eventos nuevos (otra compañía)' marcada.")
                 else:
                     print("La casilla 'Sólo eventos nuevos (otra compañía)' ya estaba marcada.")
-                page.wait_for_load_state('domcontentloaded', timeout=20000)
+                page.wait_for_load_state('domcontentloaded', timeout=5000)
 
-                # Esperar a que los trámites estén visibles antes de buscarlos
-                page.wait_for_selector('div#tramite', state='visible', timeout=20000)
+                # Extraer IDs
+                retry_action(lambda: page.wait_for_selector('div#tramite', state='visible', timeout=15000))
                 tramite_divs = page.query_selector_all('div#tramite')
-
-                # Extraer los IDs con manejo de casos vacíos
-                ids = []
                 for tramite in tramite_divs:
                     try:
                         link = tramite.query_selector('a[id*="hlnkNroCleas"]')
@@ -143,7 +153,7 @@ def execute_process(credentials):
                                 ids.append(id_value)
                     except Exception as e:
                         print(f"Error al procesar un trámite: {e}")
-                        continue  # Continúa con el siguiente trámite si falla uno
+                        continue
 
                 print("IDs de los trámites encontrados:", ids)
 
@@ -153,8 +163,6 @@ def execute_process(credentials):
                 print(f"Error inesperado: {e}")
             finally:
                 browser.close()
-
-   
 
     
     if len(ids) > 0:
