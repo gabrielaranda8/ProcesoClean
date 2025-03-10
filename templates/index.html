@@ -5,26 +5,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Control de Proceso</title>
     <link rel="stylesheet" href="static/css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 </head>
 <body>
     <div class="container">
         <h1>Control de Proceso</h1>
-        <form method="POST">
+        <form method="POST" class="process-form">
             {% if is_running %}
-                <p>Ejecutando proceso</p>
-                <p>Frecuencia: {{ frequency }} minutos</p>
-                <button type="submit" name="action" value="stop">Detener Proceso</button>
+                <div class="status-message">
+                    <p>Ejecutando proceso</p>
+                    <p>Frecuencia: {{ frequency }} minutos</p>
+                    <button type="submit" name="action" value="stop" class="stop-btn">Detener Proceso</button>
+                </div>
             {% else %}
                 <label for="frequency">Frecuencia (minutos):</label>
                 <input type="number" id="frequency" name="frequency" required min="1">
-                <button type="submit" name="action" value="start">Iniciar Proceso</button>
+                <button type="submit" name="action" value="start" class="start-btn">Iniciar Proceso</button>
             {% endif %}
         </form>
+
+        <!-- Filtros Aplicados -->
+        <div class="filters-container">
+            <h2>Filtros a Aplicar</h2>
+            <ul class="filters-list">
+                <li><i class="fas fa-check-circle"></i> Click en Limpiar Filtros</li>
+                <li><i class="fas fa-check-circle"></i> Click en Avanzado</li>
+                <li><i class="fas fa-check-circle"></i> Zona: No Asignada</li>
+                <li><i class="fas fa-check-circle"></i> Posicion/Responsabilidad: Todos</li>
+                <li><i class="fas fa-check-circle"></i> Estado: Vigente - Sin definir responsabilidad.</li>
+                <li><i class="fas fa-check-circle"></i> Marcar Casilla: Sólo eventos nuevos (otra compañía).</li>
+                <li><i class="fas fa-check-circle"></i> Obtener IDs</li>
+            </ul>
+        </div>
     </div>
+
     <div class="footer">
         <p>&copy; <a href="https://armansolutions.io/">Arman Solutions</a>. All Rights Reserved.</p>
         <p>Designed by <a href="https://gabrielaranda.com">Gabriel Aranda</a></p>
     </div>
 </body>
 </html>
+
 

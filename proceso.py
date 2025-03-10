@@ -1,5 +1,6 @@
 import os
 import time
+from datetime import datetime
 import pandas as pd
 
 import gspread
@@ -24,7 +25,8 @@ credentials_path = {
 
 sheet_path = os.environ.get('SHEET_PATH')
 
-def retry_action(action, max_attempts=3, timeout=10000, wait_between_attempts=2000):
+
+def retry_action(page, action, max_attempts=3, timeout=10000, wait_between_attempts=2000):
     """Función para reintentar una acción de Playwright con espera entre intentos."""
     for attempt in range(max_attempts):
         try:
@@ -58,11 +60,13 @@ def execute_process(credentials):
 
         # Intentar login con manejo de espera
         try:
+            time.sleep(2)
             # Esperar a que los campos de login estén disponibles
             page.wait_for_selector('input[name="txtUser"]', timeout=10000)  # 10 segundos de espera máxima
             page.fill('input[name="txtUser"]', credentials["username"])
             page.fill('input[name="txtPass"]', credentials["password"])
             page.click('input[name="lnkEnviar"]')
+            time.sleep(2)
 
             # Esperar a que la página cargue después del login
             page.wait_for_load_state('networkidle', timeout=15000)  # 15 segundos para carga completa
@@ -84,6 +88,7 @@ def execute_process(credentials):
             try:
                 url = "https://www.cleas.com.ar/wfrmMain2.aspx"
                 page.goto(url, wait_until='domcontentloaded', timeout=15000)
+                time.sleep(2)
                 page.wait_for_load_state('networkidle', timeout=15000)
                 print("Página principal cargada correctamente.")
             except PlaywrightTimeoutError:
@@ -92,53 +97,75 @@ def execute_process(credentials):
                 return
 
             try:
+                time.sleep(2)
                 # Limpiar filtros
-                retry_action(lambda: page.wait_for_selector('#lnkLimpiarFiltros', state='visible', timeout=10000))
-                retry_action(lambda: page.click('#lnkLimpiarFiltros'))
+                retry_action(page, lambda: page.wait_for_selector('#lnkLimpiarFiltros', state='visible', timeout=10000))
+                time.sleep(2)
+                retry_action(page, lambda: page.click('#lnkLimpiarFiltros'))
                 print("Enlace 'Limpiar Filtros' clickeado.")
+                time.sleep(2)
                 page.wait_for_load_state('domcontentloaded', timeout=5000)
 
                 # Hacer clic en 'Avanzado'
-                retry_action(lambda: page.wait_for_selector('#lnkFiltros', state='visible', timeout=10000))
-                retry_action(lambda: page.click('#lnkFiltros'))
+                time.sleep(2)
+                retry_action(page, lambda: page.wait_for_selector('#lnkFiltros', state='visible', timeout=10000))
+                time.sleep(2)
+                retry_action(page, lambda: page.click('#lnkFiltros'))
                 print("Enlace 'Avanzado' clickeado.")
+                time.sleep(10)
                 page.wait_for_load_state('domcontentloaded', timeout=5000)
 
                 # Seleccionar "No Asignada" en el filtro de zona
-                retry_action(lambda: page.wait_for_selector('select[name="lstZona"]', state='visible', timeout=10000))
-                retry_action(lambda: page.select_option('select[name="lstZona"]', label="No Asignada"))
+                time.sleep(2)
+                retry_action(page, lambda: page.wait_for_selector('select[name="lstZona"]', state='visible', timeout=10000))
+                time.sleep(2)
+                retry_action(page, lambda: page.select_option('select[name="lstZona"]', label="No Asignada"))
                 print("Filtro aplicado: Zona - No Asignada.")
+                time.sleep(2)
                 page.wait_for_load_state('domcontentloaded', timeout=5000)
 
                 # Cambiar la responsabilidad a "Todos"
-                retry_action(lambda: page.wait_for_selector('select[name="lstresponsabilidad"]', state='visible', timeout=10000))
-                retry_action(lambda: page.select_option('select[name="lstresponsabilidad"]', label="Todos"))
+                time.sleep(2)
+                retry_action(page, lambda: page.wait_for_selector('select[name="lstresponsabilidad"]', state='visible', timeout=10000))
+                time.sleep(2)
+                retry_action(page, lambda: page.select_option('select[name="lstresponsabilidad"]', label="Todos"))
                 print("Filtro aplicado: Responsabilidad - Todos.")
+                time.sleep(2)
                 page.wait_for_load_state('domcontentloaded', timeout=5000)
 
                 # Cambiar el estado
-                retry_action(lambda: page.wait_for_selector('select[name="lstEstado"]', state='visible', timeout=10000))
-                retry_action(lambda: page.select_option('select[name="lstEstado"]', label="Vigente - Sin definir responsabilidad"))
+                time.sleep(2)
+                retry_action(page, lambda: page.wait_for_selector('select[name="lstEstado"]', state='visible', timeout=10000))
+                time.sleep(2)
+                retry_action(page, lambda: page.select_option('select[name="lstEstado"]', label="Vigente - Sin definir responsabilidad"))
                 print("Filtro aplicado: Vigente - Sin definir responsabilidad.")
+                time.sleep(2)
                 page.wait_for_load_state('domcontentloaded', timeout=5000)
 
                 # Volver a seleccionar "No Asignada"
-                retry_action(lambda: page.wait_for_selector('select[name="lstZona"]', state='visible', timeout=10000))
-                retry_action(lambda: page.select_option('select[name="lstZona"]', label="No Asignada"))
+                time.sleep(2)
+                retry_action(page, lambda: page.wait_for_selector('select[name="lstZona"]', state='visible', timeout=10000))
+                time.sleep(2)
+                retry_action(page, lambda: page.select_option('select[name="lstZona"]', label="No Asignada"))
                 print("Filtro reaplicado: Zona - No Asignada.")
+                time.sleep(2)
                 page.wait_for_load_state('domcontentloaded', timeout=5000)
 
                 # Marcar la casilla
-                retry_action(lambda: page.wait_for_selector('#chkMensajesNuevos', state='visible', timeout=10000))
+                time.sleep(2)
+                retry_action(page, lambda: page.wait_for_selector('#chkMensajesNuevos', state='visible', timeout=10000))
                 if not page.is_checked('#chkMensajesNuevos'):
-                    retry_action(lambda: page.check('#chkMensajesNuevos'))
+                    time.sleep(2)
+                    retry_action(page, lambda: page.check('#chkMensajesNuevos'))
                     print("Casilla 'Sólo eventos nuevos (otra compañía)' marcada.")
                 else:
                     print("La casilla 'Sólo eventos nuevos (otra compañía)' ya estaba marcada.")
+                time.sleep(2)
                 page.wait_for_load_state('domcontentloaded', timeout=5000)
 
                 # Extraer IDs
-                retry_action(lambda: page.wait_for_selector('div#tramite', state='visible', timeout=15000))
+                time.sleep(2)
+                retry_action(page, lambda: page.wait_for_selector('div#tramite', state='visible', timeout=15000))
                 tramite_divs = page.query_selector_all('div#tramite')
                 for tramite in tramite_divs:
                     try:
@@ -156,14 +183,16 @@ def execute_process(credentials):
 
             except PlaywrightTimeoutError as e:
                 print(f"Error: tiempo de espera agotado en alguna acción - {e}")
+                ids = []
             except Exception as e:
                 print(f"Error inesperado: {e}")
+                ids = []
             finally:
                 browser.close()
 
     
     if len(ids) > 0:
-        print("Ahora agregaremos los id en el sheets")
+        print("Ahora agregaremos los IDs en Google Sheets")
         try:
             # Conexión a Google Sheets
             scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
@@ -177,16 +206,13 @@ def execute_process(credentials):
             sheet_data = spreadsheet.get_all_values()
             if not sheet_data:
                 print("La hoja de Google Sheets está vacía.")
-                sheet_data = [['Id_Oper']]  # Encabezado mínimo si está vacía
+                sheet_data = [['Id_Oper', 'last_update', 'date']]  # Encabezados mínimos si está vacía
 
             # Obtener encabezados y datos
             headers = sheet_data[0]
-            if 'Id_Oper' not in headers:
-                headers = ['Id_Oper']  # Asegurar que Id_Oper esté en los encabezados
+            if 'Id_Oper' not in headers or 'last_update' not in headers or 'date' not in headers:
+                headers = ['Id_Oper', 'last_update', 'date']  # Asegurar encabezados necesarios
             sheet_df = pd.DataFrame(sheet_data[1:], columns=headers) if len(sheet_data) > 1 else pd.DataFrame(columns=headers)
-
-            # Preservar la primera columna
-            # first_column = sheet_df.iloc[:, 0].tolist()
 
             # Obtener IDs existentes
             existing_ids = sheet_df['Id_Oper'].tolist() if 'Id_Oper' in sheet_df.columns else []
@@ -196,10 +222,19 @@ def execute_process(credentials):
             new_ids = [id_value for id_value in ids if id_value not in existing_ids]
             print(f"Nuevos IDs a agregar: {new_ids}")
 
-            # Si hay nuevos IDs, agregarlos a Google Sheets
+            # Si hay nuevos IDs, agregarlos con la fecha actual
             if new_ids:
-                # Crear un DataFrame con los nuevos IDs
-                new_data = pd.DataFrame(new_ids, columns=['Id_Oper'])
+                # Crear un DataFrame con los nuevos IDs y last_update
+                current_time = (datetime.now() - pd.Timedelta(hours=3)).strftime('%Y-%m-%d %H:%M:%S')
+
+                date = datetime.now()
+                formatted_date = date.strftime("%Y-%m-%d")
+                
+                new_data = pd.DataFrame({
+                    'Id_Oper': new_ids,
+                    'last_update': [current_time] * len(new_ids),
+                    'date': [formatted_date] * len(new_ids)
+                })
 
                 # Combinar con los datos existentes
                 updated_data = pd.concat([sheet_df, new_data], ignore_index=True)
@@ -209,7 +244,7 @@ def execute_process(credentials):
                     [updated_data.columns.values.tolist()] + updated_data.fillna("").values.tolist(),
                     value_input_option="USER_ENTERED"
                 )
-                print(f"Se agregaron {len(new_ids)} nuevos IDs a Google Sheets.")
+                print(f"Se agregaron {len(new_ids)} nuevos IDs a Google Sheets con last_update: {current_time}")
             else:
                 print("No hay nuevos IDs para agregar.")
 

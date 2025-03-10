@@ -1,22 +1,36 @@
 from flask import Flask, render_template, request, redirect, url_for, session
 import threading
 import time
+from datetime import datetime, timedelta
 from proceso import execute_process, validate_credentials
 import os
 
 app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY", "default_secret_key") # Cambia esto por una clave secreta segura
+app.secret_key = os.getenv("SECRET_KEY", "dev") # Cambia esto por una clave secreta segura
 
 # Variables globales
 is_running = False
 current_thread = None
 process_count = 0  # Contador de procesos ejecutados
 frequency = 0  # Frecuencia en minutos
+stop_process = False  # Bandera para detener el proceso
 
 # Función que ejecuta el proceso cada cierta cantidad de minutos
 def long_running_process(frequency, credentials):
-    global is_running, process_count
+    global is_running, process_count, stop_process
     while is_running:
+
+        current_time = datetime.now()
+        new_time = current_time - timedelta(hours=3)
+        formatted_time = new_time.strftime("%H:%M")
+
+        # Si son más de 18:00, detener el proceso
+        if formatted_time > "18:00":
+            print("Son más de 18:00. Deteniendo el proceso automáticamente.")
+            is_running = False
+            stop_process = True  # Establecer la bandera
+            break  # Salir del bucle
+
         process_count += 1  # Incrementar el contador de procesos
         print(f"Iniciando el proceso número {process_count}...")
         execute_process(credentials)  # Pasar las credenciales
@@ -32,6 +46,14 @@ def login_required(f):
         return f(*args, **kwargs)
     wrapper.__name__ = f.__name__  # Necesario para evitar conflictos con Flask
     return wrapper
+
+@app.before_request
+def check_stop_process():
+    global stop_process
+    if stop_process:
+        stop_process = False
+        # Si se tiene que detener el proceso, hacer un redirect
+        return redirect(url_for("index"))
 
 # Ruta principal para mostrar el estado del proceso y controlar la ejecución
 @app.route("/proceso", methods=["GET", "POST"])
@@ -81,4 +103,4 @@ def logout():
     return redirect(url_for("login"))
 
 if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5050)
