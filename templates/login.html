@@ -4,92 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inicio de Sesión</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-            background-color: #cce7ff; /* Fondo celeste original */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-
-        .login-container {
-            background-color: #ffffff;
-            width: 350px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Mantiene la sombra */
-            border: 1px solid #b0b0b0; /* Borde gris sombreado */
-            overflow: hidden; /* Para que el header no se desborde */
-        }
-
-        .header {
-            background-color: #2c3e50;
-            color: white;
-            padding: 20px;
-            text-align: center;
-            font-size: 24px;
-            font-weight: bold;
-        }
-
-        .form-container {
-            padding: 20px;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-            text-align: center; /* Centra el contenido del grupo */
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            color: #666;
-            font-size: 14px;
-            text-align: left; /* Mantiene los labels alineados a la izquierda dentro del grupo centrado */
-        }
-
-        .form-group input[type="text"],
-        .form-group input[type="password"] {
-            width: 90%; /* Reduce el ancho para que no ocupe todo el espacio */
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            display: inline-block; /* Permite que el input se centre horizontalmente */
-            margin: 0 auto; /* Centra horizontalmente */
-        }
-
-        .remember-me {
-            margin: 15px 0;
-            color: #666;
-            text-align: center; /* Centra la casilla de recordar */
-        }
-
-        .remember-me input {
-            margin-right: 5px;
-        }
-
-        button {
-            width: 70%; /* Reduce el ancho del botón para que coincida con los inputs */
-            padding: 12px;
-            background-color: #2c3e50;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            display: block; /* Permite centrar el botón */
-            margin: 0 auto; /* Centra horizontalmente el botón */
-        }
-
-        button:hover {
-            background-color: #34495e;
-        }
-    </style>
+    <link rel="stylesheet" href="static/css/styles.css">
 </head>
 <body>
     <div class="login-container">
@@ -111,6 +26,10 @@
                 <button type="submit">Entrar</button>
             </form>
         </div>
+    </div>
+    <div class="footer">
+        <p>&copy; <a href="https://armansolutions.io/">Arman Solutions</a>. All Rights Reserved.</p>
+        <p>Designed by <a href="https://gabrielaranda.com">Gabriel Aranda</a></p>
     </div>
 </body>
 </html>
