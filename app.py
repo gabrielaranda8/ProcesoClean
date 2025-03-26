@@ -4,6 +4,7 @@ import time
 from datetime import datetime, timedelta
 from proceso import execute_process, validate_credentials
 import os
+import asyncio
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "dev") # Cambia esto por una clave secreta segura
@@ -33,7 +34,7 @@ def long_running_process(frequency, credentials):
 
         process_count += 1  # Incrementar el contador de procesos
         print(f"Iniciando el proceso número {process_count}...")
-        execute_process(credentials)  # Pasar las credenciales
+        asyncio.run(execute_process(credentials))  # Pasar las credenciales
         print(f"Proceso número {process_count} completado.")
         # Esperar a la siguiente ejecución, según la frecuencia (en minutos)
         time.sleep(frequency * 60)  # Convertir la frecuencia a segundos
@@ -68,9 +69,11 @@ def index():
                 is_running = True
                 process_count = 0  # Reiniciar el contador cuando se inicia
                 credentials = {"username": session["user"], "password": session["pass"]}  # Credenciales del usuario
+                print(f"Iniciaremos el proceso con frecuencia de: {frequency} minutos")
                 current_thread = threading.Thread(target=long_running_process, args=(frequency, credentials))
                 current_thread.start()
         elif request.form["action"] == "stop":
+            print("El usuario detuvo el proceso, estamos finalizando el Hilo actual")
             is_running = False
             if current_thread is not None:
                 current_thread.join()

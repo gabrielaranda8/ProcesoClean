@@ -2,10 +2,12 @@ import os
 import time
 from datetime import datetime
 import pandas as pd
+import asyncio
 
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
+from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError
+from playwright.sync_api import sync_playwright
 
 
 ### GSHEETS
@@ -38,47 +40,50 @@ def retry_action(page, action, max_attempts=3, timeout=10000, wait_between_attem
             else:
                 raise  # Relanza la excepción si se agotan los intentos
 
-def execute_process(credentials):
+
+async def execute_process(credentials, retry=True):
     print("COMIENZO execute_process")
 
+    
     ids = []
 
-    with sync_playwright() as p:
+    async with async_playwright() as p:
         # Lanzar el navegador en modo headless
-        browser = p.chromium.launch(headless=True, args=['--no-sandbox', '--disable-dev-shm-usage'])
-        page = browser.new_page()
+        browser = await  p.chromium.launch(headless=True, args=['--no-sandbox', '--disable-dev-shm-usage'])
+        context = await  browser.new_context()
+        page = await context.new_page()
 
         # Abre la página inicial
         url = "https://www.cleas.com.ar/"
         try:
-            page.goto(url, wait_until='domcontentloaded')
+            await  page.goto(url, wait_until='domcontentloaded')
             print("Página inicial cargada.")
         except PlaywrightTimeoutError:
             print("Tiempo de espera agotado al cargar la página inicial.")
-            browser.close()
+            await  browser.close()
             return
 
         # Intentar login con manejo de espera
         try:
             time.sleep(2)
             # Esperar a que los campos de login estén disponibles
-            page.wait_for_selector('input[name="txtUser"]', timeout=10000)  # 10 segundos de espera máxima
-            page.fill('input[name="txtUser"]', credentials["username"])
-            page.fill('input[name="txtPass"]', credentials["password"])
-            page.click('input[name="lnkEnviar"]')
+            await page.wait_for_selector('input[name="txtUser"]', timeout=10000)  # 10 segundos de espera máxima
+            await page.fill('input[name="txtUser"]', credentials["username"])
+            await page.fill('input[name="txtPass"]', credentials["password"])
+            await page.click('input[name="lnkEnviar"]')
             time.sleep(2)
 
             # Esperar a que la página cargue después del login
-            page.wait_for_load_state('networkidle', timeout=15000)  # 15 segundos para carga completa
-            response_post_html = page.content()
+            await page.wait_for_load_state('networkidle', timeout=15000)  # 15 segundos para carga completa
+            response_post_html = await page.content()
 
         except PlaywrightTimeoutError as e:
             print(f"Error de conexión: tiempo de espera agotado en el login - {e}")
-            browser.close()
+            await browser.close()
             return
         except Exception as e:
             print(f"Error de conexión inesperado: {e}")
-            browser.close()
+            await browser.close()
             return
 
         if response_post_html:
@@ -87,91 +92,91 @@ def execute_process(credentials):
             # Navegar a la página principal
             try:
                 url = "https://www.cleas.com.ar/wfrmMain2.aspx"
-                page.goto(url, wait_until='domcontentloaded', timeout=15000)
+                await page.goto(url, wait_until='domcontentloaded', timeout=15000)
                 time.sleep(2)
-                page.wait_for_load_state('networkidle', timeout=15000)
+                await page.wait_for_load_state('networkidle', timeout=15000)
                 print("Página principal cargada correctamente.")
             except PlaywrightTimeoutError:
                 print("Tiempo de espera agotado al cargar la página principal.")
-                browser.close()
+                await browser.close()
                 return
 
             try:
-                time.sleep(2)
+                time.sleep(5)
                 # Limpiar filtros
-                retry_action(page, lambda: page.wait_for_selector('#lnkLimpiarFiltros', state='visible', timeout=10000))
-                time.sleep(2)
-                retry_action(page, lambda: page.click('#lnkLimpiarFiltros'))
+                await retry_action(page, lambda: page.wait_for_selector('#lnkLimpiarFiltros', state='visible', timeout=10000))
+                time.sleep(5)
+                await retry_action(page, lambda: page.click('#lnkLimpiarFiltros'))
                 print("Enlace 'Limpiar Filtros' clickeado.")
-                time.sleep(2)
-                page.wait_for_load_state('domcontentloaded', timeout=5000)
+                time.sleep(5)
+                await page.wait_for_load_state('domcontentloaded', timeout=5000)
 
                 # Hacer clic en 'Avanzado'
                 time.sleep(2)
-                retry_action(page, lambda: page.wait_for_selector('#lnkFiltros', state='visible', timeout=10000))
+                await retry_action(page, lambda: page.wait_for_selector('#lnkFiltros', state='visible', timeout=10000))
                 time.sleep(2)
-                retry_action(page, lambda: page.click('#lnkFiltros'))
+                await retry_action(page, lambda: page.click('#lnkFiltros'))
                 print("Enlace 'Avanzado' clickeado.")
                 time.sleep(10)
-                page.wait_for_load_state('domcontentloaded', timeout=5000)
+                await page.wait_for_load_state('domcontentloaded', timeout=5000)
 
                 # Seleccionar "No Asignada" en el filtro de zona
                 time.sleep(2)
-                retry_action(page, lambda: page.wait_for_selector('select[name="lstZona"]', state='visible', timeout=10000))
+                await retry_action(page, lambda: page.wait_for_selector('select[name="lstZona"]', state='visible', timeout=10000))
                 time.sleep(2)
-                retry_action(page, lambda: page.select_option('select[name="lstZona"]', label="No Asignada"))
+                await retry_action(page, lambda: page.select_option('select[name="lstZona"]', label="No Asignada"))
                 print("Filtro aplicado: Zona - No Asignada.")
                 time.sleep(2)
-                page.wait_for_load_state('domcontentloaded', timeout=5000)
+                await page.wait_for_load_state('domcontentloaded', timeout=5000)
 
                 # Cambiar la responsabilidad a "Todos"
                 time.sleep(2)
-                retry_action(page, lambda: page.wait_for_selector('select[name="lstresponsabilidad"]', state='visible', timeout=10000))
+                await retry_action(page, lambda: page.wait_for_selector('select[name="lstresponsabilidad"]', state='visible', timeout=10000))
                 time.sleep(2)
-                retry_action(page, lambda: page.select_option('select[name="lstresponsabilidad"]', label="Todos"))
+                await retry_action(page, lambda: page.select_option('select[name="lstresponsabilidad"]', label="Todos"))
                 print("Filtro aplicado: Responsabilidad - Todos.")
                 time.sleep(2)
-                page.wait_for_load_state('domcontentloaded', timeout=5000)
+                await page.wait_for_load_state('domcontentloaded', timeout=5000)
 
                 # Cambiar el estado
                 time.sleep(2)
-                retry_action(page, lambda: page.wait_for_selector('select[name="lstEstado"]', state='visible', timeout=10000))
+                await retry_action(page, lambda: page.wait_for_selector('select[name="lstEstado"]', state='visible', timeout=10000))
                 time.sleep(2)
-                retry_action(page, lambda: page.select_option('select[name="lstEstado"]', label="Vigente - Sin definir responsabilidad"))
+                await retry_action(page, lambda: page.select_option('select[name="lstEstado"]', label="Vigente - Sin definir responsabilidad"))
                 print("Filtro aplicado: Vigente - Sin definir responsabilidad.")
                 time.sleep(2)
-                page.wait_for_load_state('domcontentloaded', timeout=5000)
+                await page.wait_for_load_state('domcontentloaded', timeout=5000)
 
                 # Volver a seleccionar "No Asignada"
                 time.sleep(2)
-                retry_action(page, lambda: page.wait_for_selector('select[name="lstZona"]', state='visible', timeout=10000))
+                await retry_action(page, lambda: page.wait_for_selector('select[name="lstZona"]', state='visible', timeout=10000))
                 time.sleep(2)
-                retry_action(page, lambda: page.select_option('select[name="lstZona"]', label="No Asignada"))
+                await retry_action(page, lambda: page.select_option('select[name="lstZona"]', label="No Asignada"))
                 print("Filtro reaplicado: Zona - No Asignada.")
                 time.sleep(2)
-                page.wait_for_load_state('domcontentloaded', timeout=5000)
+                await page.wait_for_load_state('domcontentloaded', timeout=5000)
 
                 # Marcar la casilla
                 time.sleep(2)
-                retry_action(page, lambda: page.wait_for_selector('#chkMensajesNuevos', state='visible', timeout=10000))
-                if not page.is_checked('#chkMensajesNuevos'):
+                await retry_action(page, lambda: page.wait_for_selector('#chkMensajesNuevos', state='visible', timeout=10000))
+                if not await page.is_checked('#chkMensajesNuevos'):
                     time.sleep(2)
-                    retry_action(page, lambda: page.check('#chkMensajesNuevos'))
+                    await retry_action(page, lambda: page.check('#chkMensajesNuevos'))
                     print("Casilla 'Sólo eventos nuevos (otra compañía)' marcada.")
                 else:
                     print("La casilla 'Sólo eventos nuevos (otra compañía)' ya estaba marcada.")
                 time.sleep(2)
-                page.wait_for_load_state('domcontentloaded', timeout=5000)
+                await page.wait_for_load_state('domcontentloaded', timeout=5000)
 
                 # Extraer IDs
                 time.sleep(2)
-                retry_action(page, lambda: page.wait_for_selector('div#tramite', state='visible', timeout=15000))
-                tramite_divs = page.query_selector_all('div#tramite')
+                await retry_action(page, lambda: page.wait_for_selector('div#tramite', state='visible', timeout=15000))
+                tramite_divs = await page.query_selector_all('div#tramite')
                 for tramite in tramite_divs:
                     try:
-                        link = tramite.query_selector('a[id*="hlnkNroCleas"]')
+                        link = await tramite.query_selector('a[id*="hlnkNroCleas"]')
                         if link:
-                            href = link.get_attribute('href')
+                            href = await link.get_attribute('href')  # Esperar el resultado antes de manipularlo
                             if href and 'Id=' in href:
                                 id_value = href.split('Id=')[1].split('&')[0]
                                 ids.append(id_value)
@@ -184,11 +189,20 @@ def execute_process(credentials):
             except PlaywrightTimeoutError as e:
                 print(f"Error: tiempo de espera agotado en alguna acción - {e}")
                 ids = []
+
+                await context.close()
+                await browser.close()
+
+                if retry: 
+                    print("Reintentando execute_process una vez más...")
+                    await execute_process(credentials, retry=False)
+
             except Exception as e:
                 print(f"Error inesperado: {e}")
                 ids = []
+                await browser.close()
             finally:
-                browser.close()
+                await browser.close()
 
     
     if len(ids) > 0:
